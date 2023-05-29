@@ -8,8 +8,10 @@ const jwt = require("jsonwebtoken");
 const { User } = require("../../models/user");
 
 const { schemas } = require("../../middlewares/validationJoi");
+const { authenticate } = require("../../middlewares");
 
 const { HttpError } = require("../../helpers");
+const { required } = require("joi");
 
 require("dotenv").config();
 
@@ -55,8 +57,29 @@ router.post("/login", async (req, res, next) => {
       id: user._id,
     };
     const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "23h" });
+    await User.findByIdAndUpdate(user._id, { token });
+    res.json({ token });
+  } catch (error) {
+    next(error);
+  }
+});
 
-    res.json({token});
+router.get("/current", authenticate, async (req, res, next) => {
+  try {
+    const { email, subscription } = req.user;
+    res.json({ email, subscription });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/logout", authenticate, async (req, res, next) => {
+  try {
+    const { _id } = req.user;
+    await User.findByIdAndUpdate(_id, { token: "" });
+    res.json({
+      message: "Logout success",
+    });
   } catch (error) {
     next(error);
   }
