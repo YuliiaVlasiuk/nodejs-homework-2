@@ -7,20 +7,28 @@ const { schemas } = require("../../middlewares/validationJoi");
 
 const { HttpError } = require("../../helpers");
 
-const { isValidId } = require("../../middlewares");
+const { isValidId, authenticate } = require("../../middlewares");
 
 const router = express.Router();
 
-router.get("/", async (req, res, next) => {
+router.get("/", authenticate, async (req, res, next) => {
   try {
-    const allContacts = await Contact.find();
+    const { _id: owner } = req.user;
+
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const allContacts = await Contact.find({ owner }, "-createdAt -updatedAt", {
+      skip,
+      limit,
+    }).populate("owner");
     res.json(allContacts);
   } catch (error) {
     next(error);
   }
 });
 
-router.get("/:id", isValidId, async (req, res, next) => {
+router.get("/:id", authenticate, isValidId, async (req, res, next) => {
   try {
     const { id } = req.params;
     const contactById = await Contact.findById(id);
@@ -34,20 +42,22 @@ router.get("/:id", isValidId, async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", authenticate, async (req, res, next) => {
   try {
     const { error } = schemas.contactAddSchema.validate(req.body);
     if (error) {
       throw HttpError(400, error.message);
     }
-    const newContact = await Contact.create(req.body);
+    const { _id: owner } = req.user;
+    console.log(req.user);
+    const newContact = await Contact.create({ ...req.body, owner });
     res.status(201).json(newContact);
   } catch (error) {
     next(error);
   }
 });
 
-router.delete("/:id", isValidId, async (req, res, next) => {
+router.delete("/:id", authenticate, isValidId, async (req, res, next) => {
   try {
     const { id } = req.params;
     const delContact = await Contact.findByIdAndDelete(id);
@@ -61,7 +71,7 @@ router.delete("/:id", isValidId, async (req, res, next) => {
   }
 });
 
-router.put("/:id", isValidId, async (req, res, next) => {
+router.put("/:id", authenticate, isValidId, async (req, res, next) => {
   try {
     const { error } = schemas.contactAddSchema.validate(req.body);
     if (error) {
@@ -80,23 +90,28 @@ router.put("/:id", isValidId, async (req, res, next) => {
   }
 });
 
-router.patch("/:id/favorite", isValidId, async (req, res, next) => {
-  try {
-    const { error } = schemas.updateFavoriteSchema.validate(req.body);
-    if (error) {
-      throw HttpError(400, "missing field favorite");
+router.patch(
+  "/:id/favorite",
+  authenticate,
+  isValidId,
+  async (req, res, next) => {
+    try {
+      const { error } = schemas.updateFavoriteSchema.validate(req.body);
+      if (error) {
+        throw HttpError(400, "missing field favorite");
+      }
+      const { id } = req.params;
+      const newContact = await Contact.findByIdAndUpdate(id, req.body, {
+        new: true,
+      });
+      if (!newContact) {
+        throw HttpError(404, " Not found ");
+      }
+      res.json(newContact);
+    } catch (error) {
+      next(error);
     }
-    const { id } = req.params;
-    const newContact = await Contact.findByIdAndUpdate(id, req.body, {
-      new: true,
-    });
-    if (!newContact) {
-      throw HttpError(404, " Not found ");
-    }
-    res.json(newContact);
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 module.exports = router;
