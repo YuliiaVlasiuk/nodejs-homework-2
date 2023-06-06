@@ -7,6 +7,7 @@ const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
 const path = require("path");
 const fs = require("fs/promises");
+const jimp = require("jimp");
 
 const { User } = require("../../models/user");
 
@@ -20,8 +21,7 @@ require("dotenv").config();
 
 const { SECRET_KEY } = process.env;
 
-const avatarsDir = path.join(__dirname,"../../" ,"public", "avatars");
-console.log(avatarsDir);
+const avatarsDir = path.join(__dirname, "../../", "public", "avatars");
 
 router.post("/register", async (req, res, next) => {
   try {
@@ -98,16 +98,24 @@ router.post("/logout", authenticate, async (req, res, next) => {
   }
 });
 
-router.patch(  "/avatars",  authenticate, upload.single("avatar"),  async (req, res,next) => {
+router.patch(
+  "/avatars",
+  authenticate,
+  upload.single("avatar"),
+  async (req, res, next) => {
     try {
       const { _id } = req.user;
 
       const { path: tempUpload, originalname } = req.file;
 
-   const filename=`${_id}_${originalname}`;
+      const filename = `${_id}_${originalname}`;
 
       const resultUpload = path.join(avatarsDir, filename);
       await fs.rename(tempUpload, resultUpload);
+
+      const avatar = await jimp.read(resultUpload);
+      await avatar.resize(250, 250);
+      await avatar.writeAsync(resultUpload);
 
       const avatarURL = path.join("avatars", filename);
       await User.findByIdAndUpdate(_id, { avatarURL });
