@@ -49,7 +49,6 @@ router.post("/", authenticate, async (req, res, next) => {
       throw HttpError(400, error.message);
     }
     const { _id: owner } = req.user;
-    console.log(req.user);
     const newContact = await Contact.create({ ...req.body, owner });
     res.status(201).json(newContact);
   } catch (error) {

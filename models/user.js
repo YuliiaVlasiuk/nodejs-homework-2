@@ -20,6 +20,7 @@ const userSchema = new Schema(
     },
 
     token: String,
+    avatarURL: String,
   },
   { versionKey: false, timestamps: true }
 );
