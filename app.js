@@ -1,8 +1,23 @@
 const express = require("express");
 const logger = require("morgan");
 const cors = require("cors");
+// const nodemailer=require("nodemailer");
 
 require("dotenv").config();
+
+// const {UKR_NET_EMAIL,UKR_NET_PASSWORD}=process.env;
+
+// const nodemailerConfig={
+//   host:"smtp.ukr.net",
+//   port:465,
+//   auth:{
+//     user:UKR_NET_EMAIL,
+//     pass:UKR_NET_PASSWORD,
+//   }
+// }
+
+// const transport=nodemailer.createTransport(nodemailerConfig);
+
 
 const usersRouter = require("./routes/api/users");
 const contactsRouter = require("./routes/api/contacts");
